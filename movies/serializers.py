@@ -1,11 +1,13 @@
 from django.db.models import Avg
 from rest_framework import serializers
+from actors.serializers import ActorSerializer
 from movies.models import Movie
+from genres.models import Genre
+from genres.serializers import GenreSerializer
 from reviews.models import Review
 
 
 class MovieModelSerializer(serializers.ModelSerializer):
-    rate = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Movie
@@ -21,18 +23,28 @@ class MovieModelSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Resumo deve ser menor que 200 caracteres.')
         return value
 
-    def get_rate(self, obj):
-        rate = obj.reviews.aggregate(Avg('stars'))['stars__avg']
-        if rate:
-            return rate
-        return None
-
 
 class MovieStatsSerializer(serializers.Serializer):
     total_movies = serializers.IntegerField()
     movies_by_genre = serializers.ListField()
     total_reviews = serializers.IntegerField()
     average_stars = serializers.FloatField()
+
+
+class MovieListDetailSerializer(serializers.ModelSerializer):
+    actors = ActorSerializer(many=True)
+    genre = GenreSerializer()
+    rate = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Movie
+        fields = ['id', 'title', 'genre', 'actors', 'release_date', 'rate', 'resume']
+
+    def get_rate(self, obj):
+        rate = obj.reviews.aggregate(Avg('stars'))['stars__avg']
+        if rate:
+            return rate
+        return None
 
         # Foi substituido por um método mais simples
         # reviews = obj.reviews.all()
